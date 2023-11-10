@@ -2,6 +2,7 @@ import tkinter as tk
 import cv2
 import mediapipe as mp
 from PIL import Image, ImageTk
+import pyautogui
 
 root = tk.Tk()
 root.title("Hansor")
@@ -47,6 +48,9 @@ def update_frame():
             if results.multi_hand_landmarks:
                 for num, hand in enumerate(results.multi_hand_landmarks):
                     mp_drawing.draw_landmarks(frame, hand, mp_hands.HAND_CONNECTIONS, mp_drawing.DrawingSpec(color=(121, 22, 76), thickness=2, circle_radius=4), mp_drawing.DrawingSpec(color=(250, 44, 250), thickness=2, circle_radius=2))
+
+                pyautogui.moveTo(results.multi_hand_landmarks[0].landmark[8].x * pyautogui.size().width, results.multi_hand_landmarks[0].landmark[8].y * pyautogui.size().height)
+
 
             photo = ImageTk.PhotoImage(image=Image.fromarray(frame))
             label.config(image=photo)
