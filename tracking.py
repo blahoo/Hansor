@@ -8,23 +8,30 @@ pyautogui.FAILSAFE = False
 
 # setting up tkinker gui 
 root = tk.Tk()
-root.title("Hansor")
 
-title = tk.Label(root, text="Move Your Hand!")
-title.pack()
+root.title("Hansor (Tracking Only)")
+
+title = tk.Label(root, text="Move your hand in front of the camera,", font='Helvetica 10 bold')
+title.pack(padx=80, pady=5)
+sub_title = tk.Label(root, text="Your pointer finger is now your cursor!\n\n", font='Helvetica 10 bold')
+sub_title.pack()
+frame_label = tk.Label(root, text="Live View", font='Helvetica 10')
+frame_label.pack()
 frame_window = tk.Frame(root)
 frame_window.pack(padx=10, pady=10)
 label = tk.Label(frame_window)
 label.pack()
+note = tk.Label(root, text="Powered by Google Mediapipe and Open CV - By GG", font="Helvetica 8")
+note.pack()
 
 # scale to resize camera capture
-frame_scale = 500
+frame_scale = 600
 
 # introduce mediapipe utils and detection model
 mp_drawing = mp.solutions.drawing_utils
 mp_hands = mp.solutions.hands
 
-hands = mp_hands.Hands(min_detection_confidence=0.80, min_tracking_confidence=0.60) 
+hands = mp_hands.Hands(max_num_hands=1, min_detection_confidence=0.85, min_tracking_confidence=0.60) 
 
 # set up camera capture
 cap = cv2.VideoCapture(0)
@@ -44,6 +51,8 @@ def move_cursor(x, y):
     if x >= 0.99: x = 0.99
     if y <= 0: y = 0
     if y >= 0.99: y = 0.99
+
+    # print(f"({x}, {y})")
 
     pyautogui.moveTo(x * pyautogui.size().width, y * pyautogui.size().height)
 
@@ -86,5 +95,3 @@ update_window()
 
 root.mainloop()
 cap.release()
-
-
