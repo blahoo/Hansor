@@ -23,7 +23,7 @@ note.pack()
 mp_drawing = mp.solutions.drawing_utils
 mp_hands = mp.solutions.hands
 
-hands = mp_hands.Hands(min_detection_confidence=0.80, min_tracking_confidence=0.60) 
+hands = mp_hands.Hands(max_num_hands=1, min_detection_confidence=0.85, min_tracking_confidence=0.60) 
 
 # set up camera capture
 cap = cv2.VideoCapture(0)
