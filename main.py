@@ -1,11 +1,10 @@
 import tkinter as tk
 import cv2
 import mediapipe as mp
+from mediapipe.framework.formats import landmark_pb2
 from PIL import Image, ImageTk
 import pyautogui
 import time
-from mediapipe.framework.formats import landmark_pb2
-
 
 # set up tkinter gui
 root = tk.Tk()
@@ -33,7 +32,6 @@ mp_hands = mp.solutions.hands
 mp_drawing = mp.solutions.drawing_utils
 mp_drawing_styles = mp.solutions.drawing_styles
 
-
 GestureRecognizerOptions = mp.tasks.vision.GestureRecognizerOptions
 BaseOptions = mp.tasks.BaseOptions
 RunningMode = mp.tasks.vision.RunningMode
@@ -45,46 +43,46 @@ detection_confidence_level = 0.8
 tracking_confidence_level = 0.5
 
 # function to handle model output
-last_action = time.time()
+last_action = 0
 hand_visible = False
 hand_landmarks = []
 
 def result(result: GestureRecognizerResult, output_image: mp.Image, timestamp_ms: int):
+
+    if result.hand_landmarks == []:
+        return
+
     global last_action
     global hand_visible
     global hand_landmarks
-    
+
     hand_visible = False
 
-    try:
-        if result.hand_landmarks[0] != []:
+    # convert mp Normalized Landmark object to mp Landmark object
+    hand_landmarks_proto = landmark_pb2.NormalizedLandmarkList()
+    hand_landmarks_proto.landmark.extend([
+    landmark_pb2.NormalizedLandmark(x=landmark.x, y=landmark.y, z=landmark.z) for landmark in result.hand_landmarks[0]
+    ])
 
-            # convert mp Normalized Landmark object to mp Landmark object
-            hand_landmarks_proto = landmark_pb2.NormalizedLandmarkList()
-            hand_landmarks_proto.landmark.extend([
-            landmark_pb2.NormalizedLandmark(x=landmark.x, y=landmark.y, z=landmark.z) for landmark in result.hand_landmarks[0]
-            ])
+    hand_visible = True
+    hand_landmarks = [hand_landmarks_proto]
 
-            hand_visible = True
-            hand_landmarks = [hand_landmarks_proto]
+    if result.gestures[0][0].category_name == "Pointing_Up":
+        move_cursor(result.hand_landmarks[0][8].x, result.hand_landmarks[0][8].y)
 
-        if result.gestures[0][0].category_name == "Pointing_Up":
-            move_cursor(result.hand_landmarks[0][8].x, result.hand_landmarks[0][8].y)
-
-        elif result.gestures[0][0].category_name == "Victory":
-            if last_action - time.time() >= 2:
-                return
-            left_click()
-    
-    finally:
-        return
-
+    elif result.gestures[0][0].category_name == "Victory":
+        # add delay for left click
+        if time.time() - last_action <= 1:
+            return
+        
+        left_click()
+        last_action = time.time()
 
 def left_click():
+    # left click mouse at the current position
     pyautogui.leftClick(pyautogui.position())
 
 def move_cursor(x, y):
-
     # ([x/y] - min) / (max - min)
     x = (x - 0.2) / (0.8 - 0.2)
     y = (y - 0.2) / (0.5 - 0.2)
@@ -95,7 +93,6 @@ def move_cursor(x, y):
     if y <= 0: y = 0
     if y >= 0.99: y = 0.99
 
-    # print(f"({x}, {y})")
     pyautogui.moveTo(x * pyautogui.size().width, y * pyautogui.size().height)
 
 
