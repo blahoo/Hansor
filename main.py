@@ -4,6 +4,8 @@ import mediapipe as mp
 from PIL import Image, ImageTk
 import pyautogui
 import time
+from mediapipe.framework.formats import landmark_pb2
+
 
 # set up tkinter gui
 root = tk.Tk()
@@ -27,8 +29,10 @@ if not cap.isOpened():
     raise Exception("Could not open video device")
 
 # set up mediapip utils
-mp_drawing = mp.solutions.drawing_utils
 mp_hands = mp.solutions.hands
+mp_drawing = mp.solutions.drawing_utils
+mp_drawing_styles = mp.solutions.drawing_styles
+
 
 GestureRecognizerOptions = mp.tasks.vision.GestureRecognizerOptions
 BaseOptions = mp.tasks.BaseOptions
@@ -42,24 +46,37 @@ tracking_confidence_level = 0.5
 
 # function to handle model output
 last_action = time.time()
+hand_visible = False
+hand_landmarks = []
 
 def result(result: GestureRecognizerResult, output_image: mp.Image, timestamp_ms: int):
     global last_action
+    global hand_visible
+    global hand_landmarks
+    
+    hand_visible = False
 
     try:
-        #print(result.gestures[0][0].category_name, result.hand_landmarks[0][8].x, result.hand_landmarks[0][8].y)
-        #print(time.time())
+        if result.hand_landmarks[0] != []:
+
+            # convert mp Normalized Landmark object to mp Landmark object
+            hand_landmarks_proto = landmark_pb2.NormalizedLandmarkList()
+            hand_landmarks_proto.landmark.extend([
+            landmark_pb2.NormalizedLandmark(x=landmark.x, y=landmark.y, z=landmark.z) for landmark in result.hand_landmarks[0]
+            ])
+
+            hand_visible = True
+            hand_landmarks = [hand_landmarks_proto]
 
         if result.gestures[0][0].category_name == "Pointing_Up":
             move_cursor(result.hand_landmarks[0][8].x, result.hand_landmarks[0][8].y)
 
         elif result.gestures[0][0].category_name == "Victory":
-            if last_action - time.time() >= 1:
+            if last_action - time.time() >= 2:
                 return
             left_click()
     
     finally:
-        print(Exception)
         return
 
 
@@ -98,15 +115,30 @@ with mp.tasks.vision.GestureRecognizer.create_from_options(options) as recog:
     def main_loop():
         _, frame = cap.read()
 
+        global stamp
+        global hand_visible
+        global hand_landmarks
+
         # preprocess image
         image = cv2.flip(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB), 1)
-        mp_image = mp.Image(image_format = mp.ImageFormat.SRGB, data = image)
 
-        global stamp
+        mp_image = mp.Image(image_format = mp.ImageFormat.SRGB, data = image)
         stamp +=1
 
         # asynchronously process image
         recog.recognize_async(mp_image, stamp)
+
+        # draw hand landmarks to image
+        if stamp != 1 and hand_visible:
+            
+            for landmark in hand_landmarks:
+
+                mp_drawing.draw_landmarks(
+                    image,
+                    landmark,
+                    mp_hands.HAND_CONNECTIONS,
+                    mp_drawing_styles.get_default_hand_landmarks_style(),
+                    mp_drawing_styles.get_default_hand_connections_style())
 
         # convert image to tkinter image and update live feed frame
         photo = ImageTk.PhotoImage(image=Image.fromarray(image))
@@ -118,5 +150,3 @@ with mp.tasks.vision.GestureRecognizer.create_from_options(options) as recog:
     main_loop()
     root.mainloop()
     cap.release()
-
-
