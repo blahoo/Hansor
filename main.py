@@ -95,7 +95,6 @@ def move_cursor(x, y):
 
     pyautogui.moveTo(x * pyautogui.size().width, y * pyautogui.size().height)
 
-
 # import model and define mediapipe configuration
 options = GestureRecognizerOptions(
     base_options=BaseOptions(model_asset_path='model.task'),
@@ -107,6 +106,7 @@ options = GestureRecognizerOptions(
 
 with mp.tasks.vision.GestureRecognizer.create_from_options(options) as recog:
 
+    # frame stamp
     stamp = 0
 
     def main_loop():
